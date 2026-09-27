@@ -1,0 +1,9 @@
+# Company data never goes into git (this repository is public)
+data/
+output/
+*.xlsx
+*.XLSX
+*.xlsm
+*.xls
+!templates/*
+__pycache__/

@@ -1,0 +1,46 @@
+{
+  "day_start_hour": 7,
+  "short_stop_minutes": 10,
+  "downtime_categories": ["Machine BD", "Applicator BD"],
+  "downtime_excluded_weekdays": ["Fri"],
+
+  "fault_code_categories": {
+    "D": "Machine BD",
+    "E": "Applicator BD",
+    "F": "Seal BD",
+    "N": "IT BD"
+  },
+  "equipment_group_overrides": {
+    "WPA": {"D": "WPA BD"}
+  },
+
+  "kpis": {
+    "L-109": {"name": "Downtime", "unit": "%", "better": "lower", "scoring": "nearest",
+              "step_below": -0.002, "step_above": -0.004,
+              "targets": [{"from": "2026-01", "target": 0.03}]},
+    "L-110": {"name": "MTTR", "unit": "min", "better": "lower", "scoring": "at_or_below",
+              "step_below": -45, "step_above": -6,
+              "targets": [{"from": "2026-01", "target": 30}, {"from": "2026-07", "target": 25}]},
+    "L-107": {"name": "MTBF", "unit": "h", "better": "higher", "scoring": "nearest",
+              "step_below": 0.06875, "step_above": 0.055,
+              "targets": [{"from": "2026-01", "target": 3.75}]},
+    "L-102": {"name": "Capacity utilization", "unit": "%", "better": "higher", "scoring": "nearest",
+              "step_below": 0.01, "step_above": 0.02,
+              "targets": [{"from": "2026-01", "target": 0.9}]},
+    "L-104": {"name": "Proportion PM", "unit": "%", "better": "higher", "scoring": "nearest",
+              "step_below": 0.005, "step_above": 0.01,
+              "targets": [{"from": "2026-01", "target": 0.95}]},
+    "L-108": {"name": "Proportion unplanned", "unit": "%", "better": "lower", "scoring": "nearest",
+              "step_below": -0.02, "step_above": -0.02,
+              "targets": [{"from": "2026-01", "target": 0.15}]}
+  },
+
+  "planned_hours_per_task": {
+    "app_requal": 2.0,
+    "app_check": 0.15,
+    "seal_requal": 1.5,
+    "seal_check": 0.5
+  },
+
+  "long_breakdown_minutes": 480
+}

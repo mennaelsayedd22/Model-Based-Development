@@ -1,71 +1,95 @@
-# Maintenance KPI tool
+# Maintenance KPI Dashboard
 
-Turns the monthly SAP breakdown export into the maintenance KPI report
-(L-109 Downtime, L-110 MTTR, L-107 MTBF, L-102 Capacity utilization, L-104 Proportion PM,
-L-108 Proportion unplanned). It adds root-cause analysis on top: bad-actor machines and
-applicators, Pareto charts, repeat failures, shift and hour patterns, and data-quality checks.
+Type one command, give it any SAP breakdown export, and an interactive dashboard opens in
+your browser. The export can cover a week, a month, a year, or several files together.
 
-It uses the same calculations and 0–1.5 score bands as the old `Maintenance KPIs - 2026.xlsm`
-workbook. For January–August 2026, every score the tool calculates matches the workbook.
-
-> **This repository is public.** Never commit SAP exports, the KPI workbook or anything in
-> `data/` or `output/`. `.gitignore` already blocks them.
-
-## Setup (once)
-
-```bash
-pip install -r requirements.txt
-python kpi_tool.py import-workbook "Maintenance KPIs - 2026.xlsm"
+```
+kpi C:\SAP\export.XLSX
 ```
 
-The import fills `data/` with:
+The dashboard shows:
+- **KPIs:** L-109 Downtime %, L-110 MTTR and L-107 MTBF, with targets, 0–1.5 scores and a comparison with the previous period.
+- **Trends** by day, week or month.
+- **Where the downtime comes from:** bad-actor machines and applicators, damage codes, object parts, repeat failures, shifts and hours, causes and technicians.
+- **Data-quality checks.**
 
-| File | What it holds | Where it comes from |
-|---|---|---|
-| `production_days.csv` | date, shift hours, working machines per day | `Calc. Day` sheet |
-| `monthly_inputs.csv` | team attendance and planned-maintenance counts per month | `YEAR` sheet |
-| `history.csv` | KPI values per month (for trends and "vs last month") | `YEAR` sheet |
+**Filters:** date range, month buttons, categories, and a single machine. You can also click a machine to drill down.
+**Download Excel** exports the current view. **Print / PDF** prints it.
 
-Optionally add `data/users.csv` (`user_id,name`) to show technician names instead of SAP user IDs.
+The dashboard is a single HTML file saved in `output\`. It works offline and nothing is uploaded.
 
-## Every month
+> **This repository is public.** Never commit SAP exports, production files or dashboards.
+> `.gitignore` already blocks `*.xlsx`, `*.csv` and `output/`.
 
-1. Export the breakdown report from SAP (same layout as `aug.XLSX`).
-2. Add the month's production days to `data/production_days.csv`.
-3. Add one row for the month to `data/monthly_inputs.csv` (team attendance, applicator and
-   seal-track requalifications and checks, subs and CST planned work).
-4. Run:
+## Install (once, on your laptop)
 
-```bash
-python kpi_tool.py run "sep.XLSX"
+1. Install Python 3 from python.org and tick **"Add Python to PATH"** during setup.
+2. Download this folder (`maintenance-kpi-tool`) to your laptop, for example `C:\Tools\maintenance-kpi-tool`.
+3. Open a command window in that folder and run:
+   ```
+   pip install -r requirements.txt
+   ```
+4. Optional, so you can type `kpi` from any folder: add `C:\Tools\maintenance-kpi-tool` to your PATH.
+   Start → "Edit environment variables for your account" → Path → New.
+
+## Use
+
+```
+kpi                                  choose the SAP file(s) in a window
+kpi C:\SAP\aug.XLSX                  one file, any period
+kpi jul.XLSX aug.XLSX sep.XLSX       several files, merged (duplicates removed)
+kpi C:\SAP\exports                   every .xlsx file in the folder
 ```
 
-You get `output/2026-09/KPI_Report_2026-09.html`, a report that opens in any browser and
-works offline, and `KPI_Details_2026-09.xlsx`, which has every table plus the cleaned event list.
+If `kpi` is not on your PATH, run `python kpi.py ...` from inside the tool folder instead.
 
-Templates for the CSV files are in `templates/`.
+## Working hours (not in SAP)
 
-## How it calculates
+Downtime % and MTBF need the working hours of each day: hours × working machines.
 
-- **Events**: SAP rows that have a work order. The production day runs 07:00 → 07:00.
-  Shifts are 1st 07–15, 2nd 15–23 and 3rd 23–07.
-- **Category** comes from the fault code at the start of the notification description:
-  `D` Machine BD, `E` Applicator BD, `F` Seal BD, `N` IT BD. A `D` on WPA equipment is WPA BD.
-- **Downtime** counts Machine BD and Applicator BD. This is the rule since May 2026, set in `config.json`.
-- **Daily values**:
-  - Downtime % = breakdown h ÷ (hours × working machines)
+- **Exact:** put a file `production_days.csv` in the tool folder and it is used automatically.
+  You can also pass one with `--production file.csv`.
+  ```
+  date,shift_hours,working_machines
+  2026-08-01,24,60.08
+  2026-08-02,24,60.49
+  ```
+- **Otherwise** the defaults in `config.json` are used: 60 machines × 24 h, and Fridays 12 h × 41 machines.
+  These are close but not exact, because real days vary (holidays, short Thursdays, and so on).
+
+## Settings: `config.json`
+
+| Setting | Meaning |
+|---|---|
+| `production` | default hours per day and working machines, with per-weekday overrides |
+| `kpis.*.targets` | targets; add `{"from": "2026-10", "target": 0.025}` to change one from a given month |
+| `downtime_categories` | categories counted in the KPIs (Machine BD and Applicator BD) |
+| `fault_code_categories` | first letter of the notification description → category |
+| `day_start_hour` | the production day starts at 07:00 |
+| `technician_names` | `{"SAP_USER_ID": "Name"}` to show names instead of IDs |
+
+## How the KPIs are calculated
+
+This is the same logic as the old `Maintenance KPIs` workbook.
+
+- **Rows used:** only notifications that have a work order.
+- **Production day:** runs from 07:00 to 07:00.
+- **Shifts:** 1st 07–15, 2nd 15–23, 3rd 23–07.
+- **Category:** comes from the fault code at the start of the description:
+  `D` Machine, `E` Applicator, `F` Seal, `N` IT. A `D` on WPA equipment is WPA.
+- **Per day:**
+  - Downtime % = breakdown h ÷ working h
   - MTTR = breakdown min ÷ calls
   - MTBF = (working h − breakdown h) ÷ calls
-- **Monthly values**: the average of the daily values. Downtime % skips Fridays.
-- **L-102** = (unplanned h + planned h) ÷ team attendance h
-- **L-104** = planned tasks done ÷ planned target
-- **L-108** = calls over 10 min ÷ (those calls + planned tasks)
+- **For a period:** the average of the daily values. Downtime % skips Fridays.
+- **Scores:** the workbook's 0–1.5 bands, using the targets valid in the last month of the period.
 
-Targets, score steps, categories and the day start are all in `config.json`. When a target
-changes, add a new `{"from": "YYYY-MM", "target": ...}` entry so older months keep their old target.
+L-102, L-104 and L-108 are not included. They need planned-maintenance counts that are not in the
+breakdown export.
 
-## Tests
+## For developers
 
-```bash
-python -m pytest tests
-```
+- `kpi.py` reads the Excel files with openpyxl and writes the data, `config.json` and the
+  `dashboard/` files into one HTML file.
+- `dashboard/engine.js` holds all the calculations.
+- Tests: `node --test tests/engine.test.js`

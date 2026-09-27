@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maintenance KPI Dashboard</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f3f4f2;--surface:#fcfcfb;--surface-2:#eeefec;--border:#dcdcd6;
+  --text:#0b0b0b;--text-2:#52514e;--muted:#77766f;
+  --series:#2a78d6;--series-soft:#86b6ef;--series-dark:#1c5cab;--excluded:#c4c3bb;
+  --good:#0ca30c;--warning:#c98500;--critical:#d03b3b;--grid:#e6e6e1;
+  --accent:#2a78d6;--accent-text:#fff;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#111110;--surface:#1a1a19;--surface-2:#252523;--border:#383835;
+    --text:#fff;--text-2:#c3c2b7;--muted:#9a998f;
+    --series:#3987e5;--series-soft:#86b6ef;--series-dark:#1c5cab;--excluded:#5c5b55;
+    --good:#0ca30c;--warning:#fab219;--critical:#e66767;--grid:#2e2e2b;
+    --accent:#3987e5;--accent-text:#fff;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111110;--surface:#1a1a19;--surface-2:#252523;--border:#383835;
+  --text:#fff;--text-2:#c3c2b7;--muted:#9a998f;
+  --series:#3987e5;--series-soft:#86b6ef;--series-dark:#1c5cab;--excluded:#5c5b55;
+  --good:#0ca30c;--warning:#fab219;--critical:#e66767;--grid:#2e2e2b;
+  --accent:#3987e5;--accent-text:#fff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 "Segoe UI",system-ui,Arial,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+h1{font-size:22px;margin:0}
+h2{font-size:17px;margin:26px 0 10px}
+h3{font-size:14px;margin:0 0 8px;color:var(--text-2);font-weight:600}
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sub{color:var(--text-2);font-size:13px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:inherit;border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:7px;padding:6px 11px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:600}
+button.chip{border-radius:999px;padding:3px 11px;font-size:13px}
+button.chip.on{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
+input[type=date],select{font:inherit;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 6px}
+.filters{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 4px;margin-bottom:6px}
+.filters .panel{margin:0;padding:10px 14px;display:grid;gap:8px}
+.flabel{font-size:12px;color:var(--muted);min-width:78px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:4px 11px}
+.seg button.on{background:var(--accent);color:var(--accent-text)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.card.kpi{border-top:5px solid var(--excluded)}
+.card .k{font-size:12px;color:var(--text-2)}
+.card .v{font-size:25px;font-weight:650;margin:2px 0;font-variant-numeric:tabular-nums}
+.card .s{font-size:12px;color:var(--text-2)}
+.badge{font-weight:650}
+ul.hl{margin:0;padding-left:20px} ul.hl li{margin:3px 0}
+.chart{position:relative;height:240px}
+.chart.tall{height:280px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,480px),1fr));gap:12px}
+.grid2 .panel{margin:0}
+.scroll{max-height:380px;overflow:auto;border:1px solid var(--border);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{background:var(--surface-2);text-align:left;padding:5px 7px;position:sticky;top:0;font-weight:600}
+td{padding:4px 7px;border-bottom:1px solid var(--grid)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--surface-2)}
+.hint{color:var(--muted);font-size:12.5px}
+.warn{color:var(--critical);font-size:13px;margin:8px 0 0}
+.err{background:var(--surface);border:1px solid var(--critical);color:var(--critical);padding:10px 12px;border-radius:8px;margin:10px 0}
+.drop{border:2px dashed var(--border);border-radius:10px;padding:40px 16px;text-align:center;cursor:pointer;color:var(--text-2);display:block}
+.drop.over{border-color:var(--accent);background:var(--surface-2)}
+.drop b{color:var(--text);font-size:17px;display:block;margin-bottom:4px}
+.hidden{display:none!important}
+@media print{
+  body{background:#fff}
+  .noprint,.filters .row.noprint{display:none!important}
+  .filters{position:static}
+  .panel{break-inside:avoid;border-color:#ccc}
+  main{max-width:none;padding:0}
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div><h1>Maintenance KPI Dashboard</h1><div class="sub" id="source"></div></div>
+    <div class="row noprint">
+      <button id="btnAdd" title="Add more SAP exports (they are merged; duplicates are removed)">Add SAP file…</button>
+      <button id="btnExcel">Download Excel</button>
+      <button id="btnPrint">Print / PDF</button>
+      <input type="file" id="fileAdd" accept=".xlsx,.xlsm" multiple hidden>
+    </div>
+  </div>
+  <div id="errors"></div>
+
+  <label class="drop hidden" id="empty">
+    <b>Choose or drop a SAP breakdown export</b>
+    Any period: a week, a month, a year. Several files are merged. Nothing is uploaded.
+  </label>
+
+  <div id="dash" class="hidden">
+    <div class="filters">
+      <div class="panel">
+        <div class="row">
+          <span class="flabel">Period</span>
+          <input type="date" id="from"> <span class="hint">to</span> <input type="date" id="to">
+          <span id="quick" class="row"></span>
+        </div>
+        <div class="row noprint">
+          <span class="flabel">Trend by</span>
+          <span class="seg" id="gran"><button data-g="day">Day</button><button data-g="week">Week</button><button data-g="month">Month</button></span>
+          <span class="flabel" style="margin-left:14px;min-width:0">Machine</span>
+          <select id="machine"></select>
+        </div>
+        <div class="row noprint">
+          <span class="flabel">Categories</span>
+          <span id="cats" class="row"></span>
+          <span class="hint">(the old KPI counts Machine + Applicator)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;margin-bottom:10px">
+        <h3 style="margin:0" id="periodTitle"></h3><span class="hint" id="periodSub"></span>
+      </div>
+      <div class="cards" id="cards"></div>
+      <div id="notes"></div>
+    </div>
+    <div class="panel"><h3>Highlights</h3><ul class="hl" id="highlights"></ul></div>
+
+    <div class="panel"><h3 id="tDtTitle">Downtime %</h3><div class="chart tall"><canvas id="cDt"></canvas></div></div>
+    <div class="grid2">
+      <div class="panel"><h3 id="tMttrTitle">MTTR (min)</h3><div class="chart"><canvas id="cMttr"></canvas></div></div>
+      <div class="panel"><h3 id="tMtbfTitle">MTBF (h)</h3><div class="chart"><canvas id="cMtbf"></canvas></div></div>
+    </div>
+
+    <h2>Where does the downtime come from?</h2>
+    <div class="grid2">
+      <div class="panel"><h3>Top machines – click a bar to drill down</h3><div class="chart tall"><canvas id="cMach"></canvas></div></div>
+      <div class="panel"><h3>Top applicators by tool ID (downtime h)</h3><div class="chart tall"><canvas id="cTool"></canvas></div></div>
+      <div class="panel"><h3>Downtime by damage code (h)</h3><div class="chart tall"><canvas id="cDamage"></canvas></div></div>
+      <div class="panel"><h3>Downtime by object part (h)</h3><div class="chart tall"><canvas id="cPart"></canvas></div></div>
+    </div>
+
+    <h2>Details</h2>
+    <div class="panel"><h3>Bad actor machines – click a row to drill down</h3><div id="tMach"></div></div>
+    <div class="panel"><h3>Repeat failures (same machine and part, 3 or more times)</h3><div id="tRepeat"></div></div>
+    <div class="grid2">
+      <div class="panel"><h3>Shifts</h3><div id="tShift"></div></div>
+      <div class="panel"><h3>Causes</h3><div id="tCause"></div></div>
+    </div>
+    <div class="panel" style="margin-top:12px"><h3>Breakdown calls by hour of day (1st shift 07–15, 2nd 15–23, 3rd 23–07)</h3><div class="chart"><canvas id="cHour"></canvas></div></div>
+    <div class="grid2">
+      <div class="panel"><h3>Technicians (who confirmed the work order)</h3><div id="tTech"></div></div>
+      <div class="panel"><h3>Data quality (whole file)</h3><div id="tQuality"></div>
+        <p class="hint">Long breakdowns are listed in the Excel download so you can check them in SAP.</p></div>
+    </div>
+    <div class="panel hint" style="margin-top:12px" id="howto"></div>
+  </div>
+</main>
+
+<script id="kpi-data" type="application/json">/*__DATA__*/null</script>
+<script>/*__XLSX__*/</script>
+<script>/*__CHARTJS__*/</script>
+<script>/*__ENGINE__*/</script>
+<script>/*__APP__*/</script>
+</body>
+</html>

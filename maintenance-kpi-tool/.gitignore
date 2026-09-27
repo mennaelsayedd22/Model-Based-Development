@@ -5,5 +5,5 @@ output/
 *.XLSX
 *.xlsm
 *.xls
-!templates/*
+*.csv
 __pycache__/
